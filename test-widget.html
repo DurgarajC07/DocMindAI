@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DocMind AI Chatbot Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2563eb;
+        }
+        .info-box {
+            background: #f0f9ff;
+            border: 2px solid #2563eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🚀 DocMind AI Chatbot Widget Test</h1>
+    
+    <div class="info-box">
+        <h2>Widget Status: <span class="success">Active</span></h2>
+        <p>The chat widget should appear in the bottom-right corner of your screen.</p>
+        <ul>
+            <li>Click the chat button to open the widget</li>
+            <li>Type a message and press Enter or click Send</li>
+            <li>The bot will respond based on your uploaded documents</li>
+        </ul>
+    </div>
+
+    <h2>📝 Test Questions</h2>
+    <p>Try asking these questions to test the chatbot:</p>
+    <ul>
+        <li>"Hello, how can you help me?"</li>
+        <li>"What services do you offer?"</li>
+        <li>"Tell me about your company"</li>
+        <li>Any question related to your uploaded documents</li>
+    </ul>
+
+    <h2>🔧 Implementation</h2>
+    <p>This page uses the following embed code:</p>
+    <div class="code-block">
+&lt;!-- DocMind AI Chatbot Widget --&gt;<br>
+&lt;script <br>
+&nbsp;&nbsp;src="http://localhost:8000/widget.js" <br>
+&nbsp;&nbsp;data-business-id="19d08036-9797-4f0f-8279-dfd2b7207025"<br>
+&nbsp;&nbsp;data-api-base="http://localhost:8000"&gt;<br>
+&lt;/script&gt;
+    </div>
+
+    <h2>📊 Features</h2>
+    <ul>
+        <li>✅ Real-time chat responses</li>
+        <li>✅ Session persistence (uses localStorage)</li>
+        <li>✅ Custom branding and colors</li>
+        <li>✅ Mobile responsive</li>
+        <li>✅ Loading indicators</li>
+        <li>✅ Error handling</li>
+    </ul>
+
+    <h2>🐛 Troubleshooting</h2>
+    <p><strong>Widget not appearing?</strong></p>
+    <ol>
+        <li>Open browser console (F12) and check for errors</li>
+        <li>Verify backend is running: <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a></li>
+        <li>Check that business ID is correct</li>
+        <li>Ensure documents are uploaded and processed</li>
+    </ol>
+
+    <!-- DocMind AI Chatbot Widget -->
+    <!-- Simple method: Just include the script with data attributes -->
+    <script 
+        src="http://localhost:8000/widget.js" 
+        data-business-id="19d08036-9797-4f0f-8279-dfd2b7207025"
+        data-api-base="http://localhost:8000">
+    </script>
+
+</body>
+</html>

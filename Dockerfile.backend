@@ -1,0 +1,30 @@
+# Use Python 3.14
+FROM python:3.14-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Copy project files
+COPY pyproject.toml ./
+COPY backend ./backend
+
+# Install Python dependencies using uv
+RUN uv sync --no-dev
+
+# Create necessary directories
+RUN mkdir -p data/chroma uploads logs
+
+# Expose port
+EXPOSE 8000
+
+# Run application
+CMD ["uv", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

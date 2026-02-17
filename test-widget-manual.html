@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DocMind AI - Manual Init Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .status {
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 DocMind AI Widget - Manual Initialization</h1>
+    
+    <div class="status">
+        <strong>✅ Method:</strong> Manual Initialization<br>
+        <strong>📍 Widget:</strong> Should appear in bottom-right corner
+    </div>
+
+    <h2>About This Test</h2>
+    <p>This page demonstrates the <strong>manual initialization method</strong>, which gives you more control:</p>
+    <ul>
+        <li>Load the widget script without auto-init</li>
+        <li>Call <code>DocMindWidget.init()</code> programmatically</li>
+        <li>Useful for single-page applications or conditional loading</li>
+    </ul>
+
+    <h2>Code Example</h2>
+    <div class="code">
+&lt;!-- Load widget script --&gt;<br>
+&lt;script src="http://localhost:8000/widget.js"&gt;&lt;/script&gt;<br>
+<br>
+&lt;!-- Initialize manually --&gt;<br>
+&lt;script&gt;<br>
+&nbsp;&nbsp;document.addEventListener("DOMContentLoaded", function() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DocMindWidget.init({<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;businessId: '19d08036-9797-4f0f-8279-dfd2b7207025',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;apiUrl: 'http://localhost:8000'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;});<br>
+&lt;/script&gt;
+    </div>
+
+    <h2>Try It Out!</h2>
+    <p>Click the chat bubble in the bottom-right corner to start a conversation.</p>
+
+    <!-- Load widget script (no auto-init) -->
+    <script src="http://localhost:8000/widget.js"></script>
+
+    <!-- Manual initialization -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        console.log("Initializing DocMind AI Widget manually...");
+        
+        DocMindWidget.init({
+          businessId: '19d08036-9797-4f0f-8279-dfd2b7207025',
+          apiUrl: 'http://localhost:8000'
+        });
+        
+        console.log("Widget initialized!");
+      });
+    </script>
+
+</body>
+</html>
