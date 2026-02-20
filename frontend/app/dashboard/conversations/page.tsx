@@ -38,8 +38,13 @@ export default function ConversationsPage() {
     try {
       const data = await chatApi.getConversations(bizId)
       setConversations(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load conversations:', error)
+      if (error.response?.status === 404) {
+        toast.error('Business not found. Please select a valid business.')
+        localStorage.removeItem('selected_business_id')
+        window.location.href = '/dashboard'
+      }
     } finally {
       setLoading(false)
     }

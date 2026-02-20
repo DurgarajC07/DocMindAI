@@ -31,10 +31,12 @@ export default function DocumentsPage() {
   const [showChatModal, setShowChatModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [processingDocs, setProcessingDocs] = useState<Set<string>>(new Set())
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [textContent, setTextContent] = useState('')
   const [url, setUrl] = useState('')
   const [businessId, setBusinessId] = useState<string | null>(null)
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null)
   
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -52,7 +54,28 @@ export default function DocumentsPage() {
       setLoading(false)
       toast.error('Please select a business first')
     }
+    
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current)
+      }
+    }
   }, [])
+
+  // Poll for processing documents
+  useEffect(() => {
+    if (processingDocs.size > 0 && businessId) {
+      pollingInterval.current = setInterval(() => {
+        checkProcessingStatus()
+      }, 3000) // Check every 3 seconds
+      
+      return () => {
+        if (pollingInterval.current) {
+          clearInterval(pollingInterval.current)
+        }
+      }
+    }
+  }, [processingDocs.size, businessId])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -62,11 +85,52 @@ export default function DocumentsPage() {
     try {
       const data = await documentApi.list(bizId)
       setDocuments(data)
-    } catch (error) {
+      
+      // Track which documents are still processing
+      const processing = new Set<string>()
+      data.forEach(doc => {
+        if (!doc.is_processed && !doc.error_message) {
+          processing.add(doc.id)
+        }
+      })
+      setProcessingDocs(processing)
+    } catch (error: any) {
       console.error('Failed to load documents:', error)
+      if (error.response?.status === 404) {
+        toast.error('Business not found. Please select a valid business.')
+        localStorage.removeItem('selected_business_id')
+        window.location.href = '/dashboard'
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const checkProcessingStatus = async () => {
+    if (!businessId || processingDocs.size === 0) return
+
+    const stillProcessing = new Set<string>()
+    
+    for (const docId of processingDocs) {
+      try {
+        const doc = await documentApi.get(businessId, docId)
+        
+        if (!doc.is_processed && !doc.error_message) {
+          stillProcessing.add(docId)
+        } else if (doc.is_processed) {
+          toast.success(`✅ ${doc.filename} processed successfully! (${doc.chunks_count} chunks)`)
+        } else if (doc.error_message) {
+          toast.error(`❌ ${doc.filename} failed: ${doc.error_message}`)
+        }
+        
+        // Update the document in the list
+        setDocuments(prev => prev.map(d => d.id === docId ? doc : d))
+      } catch (error) {
+        console.error(`Failed to check status for document ${docId}:`, error)
+      }
+    }
+    
+    setProcessingDocs(stillProcessing)
   }
 
   const handleFileUpload = async (files: File[]) => {
@@ -84,11 +148,24 @@ export default function DocumentsPage() {
     setUploadProgress(0)
     
     try {
-      await documentApi.upload(businessId, files, (progress) => {
+      const result = await documentApi.upload(businessId, files, (progress) => {
         setUploadProgress(progress)
       })
-      toast.success(`${files.length} file(s) uploaded successfully!`)
+      
+      toast.success(`📤 ${files.length} file(s) uploaded successfully! Processing...`)
       setSelectedFiles([])
+      setShowUploadModal(false)
+      
+      // Track newly uploaded documents for processing status
+      const newProcessing = new Set(processingDocs)
+      result.documents.forEach(doc => {
+        if (!doc.is_processed) {
+          newProcessing.add(doc.id)
+        }
+      })
+      setProcessingDocs(newProcessing)
+      
+      // Reload documents to show new uploads
       loadDocuments(businessId)
     } catch (error: any) {
       // Error already handled by interceptor, but show specific message
@@ -205,6 +282,22 @@ export default function DocumentsPage() {
         </div>
       </div>
 
+      {processingDocs.size > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-3">
+            <LoadingSpinner size="sm" />
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                Processing {processingDocs.size} document{processingDocs.size > 1 ? 's' : ''}...
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Documents are processed sequentially to ensure reliability. This may take a few minutes.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {documents.length === 0 ? (
         <EmptyState
           icon={<DocumentTextIcon className="h-16 w-16 text-gray-400" />}
@@ -224,16 +317,26 @@ export default function DocumentsPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">{doc.filename}</h3>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap items-center">
                     <Badge variant="info">{doc.file_type}</Badge>
-                    <Badge variant={doc.is_processed ? 'success' : 'warning'}>
-                      {doc.is_processed ? 'processed' : 'pending'}
-                    </Badge>
+                    {processingDocs.has(doc.id) ? (
+                      <div className="flex items-center gap-1">
+                        <LoadingSpinner size="sm" />
+                        <Badge variant="warning">Processing...</Badge>
+                      </div>
+                    ) : doc.error_message ? (
+                      <Badge variant="danger">Failed</Badge>
+                    ) : doc.is_processed ? (
+                      <Badge variant="success">✓ Ready</Badge>
+                    ) : (
+                      <Badge variant="warning">Pending</Badge>
+                    )}
                   </div>
                 </div>
                 <button
                   onClick={() => handleDelete(doc.id)}
                   className="text-red-600 hover:text-red-700 p-1"
+                  disabled={processingDocs.has(doc.id)}
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
@@ -242,6 +345,11 @@ export default function DocumentsPage() {
               <div className="space-y-2 text-sm text-gray-600">
                 <p>Size: {formatFileSize(doc.file_size)}</p>
                 <p>Chunks: {doc.chunks_count || 0}</p>
+                {processingDocs.has(doc.id) && (
+                  <p className="text-xs text-blue-600 animate-pulse">
+                    🔄 Chunking document... This may take a few minutes
+                  </p>
+                )}
                 {doc.error_message && (
                   <p className="text-xs text-red-600">Error: {doc.error_message}</p>
                 )}

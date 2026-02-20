@@ -40,10 +40,15 @@ export default function AnalyticsPage() {
 
   const loadAnalytics = async (bizId: string, period: number) => {
     try {
-      const data = await businessApi.getAnalytics(bizId, period)
+      const data = await businessApi.getAnalytics(bizId)
       setAnalytics(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load analytics:', error)
+      if (error.response?.status === 404) {
+        toast.error('Business not found. Please select a valid business.')
+        localStorage.removeItem('selected_business_id')
+        window.location.href = '/dashboard'
+      }
     } finally {
       setLoading(false)
     }
