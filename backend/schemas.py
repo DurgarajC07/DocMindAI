@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
@@ -204,3 +205,200 @@ class ErrorResponse(BaseModel):
 
     detail: str
     error_code: str | None = None
+
+
+# ========== Agent Configuration Schemas ==========
+class AgentPersonality(str, Enum):
+    """Agent personality types."""
+    
+    PROFESSIONAL = "professional"
+    FRIENDLY = "friendly"
+    TECHNICAL = "technical"
+    CASUAL = "casual"
+    EMPATHETIC = "empathetic"
+    ENTHUSIASTIC = "enthusiastic"
+
+
+class BusinessCategory(str, Enum):
+    """Business category for template selection."""
+    
+    ECOMMERCE = "ecommerce"
+    SAAS = "saas"
+    HEALTHCARE = "healthcare"
+    EDUCATION = "education"
+    FINANCE = "finance"
+    LEGAL = "legal"
+    HOSPITALITY = "hospitality"
+    REAL_ESTATE = "real_estate"
+    RESTAURANT = "restaurant"
+    CONSULTING = "consulting"
+    CUSTOM = "custom"
+
+
+class ResponseTone(str, Enum):
+    """Response tone options."""
+    
+    FORMAL = "formal"
+    CONVERSATIONAL = "conversational"
+    CONCISE = "concise"
+    DETAILED = "detailed"
+
+
+class AgentConfigUpdate(BaseModel):
+    """Update agent configuration."""
+    
+    agent_personality: AgentPersonality | None = None
+    business_category: BusinessCategory | None = None
+    system_prompt: str | None = Field(None, max_length=5000)
+    response_tone: ResponseTone | None = None
+    use_hybrid_search: bool | None = None
+    use_reranking: bool | None = None
+    chunk_size: int | None = Field(None, ge=100, le=5000)
+    chunk_overlap: int | None = Field(None, ge=0, le=1000)
+
+
+class AgentConfigResponse(BaseModel):
+    """Agent configuration response."""
+    
+    business_id: str
+    agent_personality: str
+    business_category: str
+    system_prompt: str | None
+    response_tone: str
+    use_hybrid_search: bool
+    use_reranking: bool
+    chunk_size: int
+    chunk_overlap: int
+    
+    class Config:
+        from_attributes = True
+
+
+class PromptAnalysisRequest(BaseModel):
+    """Request to analyze a prompt."""
+    
+    prompt: str = Field(min_length=10, max_length=5000)
+
+
+class PromptAnalysisResponse(BaseModel):
+    """Prompt analysis result."""
+    
+    score: int
+    quality: str
+    issues: list[str]
+    suggestions: list[str]
+    word_count: int
+
+
+class PromptImprovementRequest(BaseModel):
+    """Request to improve a prompt."""
+    
+    rough_prompt: str = Field(min_length=5, max_length=1000)
+    business_type: str = "general"
+
+
+class PromptImprovementResponse(BaseModel):
+    """Improved prompt response."""
+    
+    original_prompt: str
+    improved_prompt: str
+    suggestions: list[str]
+
+
+class TemplateRequest(BaseModel):
+    """Request to get/apply a template."""
+    
+    category: BusinessCategory
+    business_name: str = Field(min_length=2, max_length=255)
+    custom_guidelines: str | None = Field(None, max_length=2000)
+
+
+class TemplateResponse(BaseModel):
+    """Template configuration response."""
+    
+    name: str
+    category: str
+    personality: str
+    system_prompt: str
+    welcome_message: str
+    sample_questions: list[str]
+    response_tone: str
+
+
+class WelcomeMessageSuggestions(BaseModel):
+    """Welcome message suggestions."""
+    
+    suggestions: list[str]
+
+
+class ContentFilterConfig(BaseModel):
+    """Content filter configuration."""
+    
+    block_profanity: bool = True
+    block_personal_info_requests: bool = True
+    block_competitor_mentions: bool = False
+    max_response_length: int = Field(default=500, ge=100, le=2000)
+    allowed_topics: list[str] = []
+    blocked_topics: list[str] = []
+
+
+class AgentRestrictionsConfig(BaseModel):
+    """Agent behavioral restrictions."""
+    
+    cannot_make_purchases: bool = True
+    cannot_modify_account: bool = True
+    cannot_access_personal_data: bool = True
+    must_stay_on_topic: bool = True
+    must_cite_sources: bool = False
+    must_admit_uncertainty: bool = True
+    require_human_handoff: list[str] = []
+
+
+class PromptTemplateCreate(BaseModel):
+    """Create a prompt template."""
+    
+    name: str = Field(min_length=2, max_length=255)
+    category: str = Field(min_length=2, max_length=50)
+    system_prompt: str = Field(min_length=10, max_length=5000)
+    welcome_message: str = Field(min_length=5, max_length=500)
+    is_public: bool = False
+
+
+class PromptTemplateResponse(BaseModel):
+    """Prompt template response."""
+    
+    id: str
+    user_id: str
+    name: str
+    category: str
+    system_prompt: str
+    welcome_message: str
+    is_public: bool
+    usage_count: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class UploadProgressResponse(BaseModel):
+    """Upload progress status."""
+    
+    upload_id: str
+    filename: str
+    total_size: int
+    uploaded_size: int
+    progress: float
+    status: str
+    error: str | None = None
+
+
+class RAGEngineStats(BaseModel):
+    """RAG engine statistics."""
+    
+    business_id: str
+    total_chunks: int
+    cached_responses: int
+    active_sessions: int
+    hybrid_search_enabled: bool
+    reranking_enabled: bool

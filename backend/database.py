@@ -114,6 +114,22 @@ class Business(Base):
     )
     theme_color: Mapped[str] = mapped_column(String(7), default="#4F46E5")
     
+    # Agent configuration (JSON stored as text)
+    agent_personality: Mapped[str] = mapped_column(String(50), default="friendly")
+    business_category: Mapped[str] = mapped_column(String(50), default="custom")
+    system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    response_tone: Mapped[str] = mapped_column(String(50), default="conversational")
+    
+    # Advanced RAG settings
+    use_hybrid_search: Mapped[bool] = mapped_column(default=True)
+    use_reranking: Mapped[bool] = mapped_column(default=True)
+    chunk_size: Mapped[int] = mapped_column(Integer, default=1000)
+    chunk_overlap: Mapped[int] = mapped_column(Integer, default=200)
+    
+    # Content filtering (JSON as text)
+    content_filter_rules: Mapped[str | None] = mapped_column(Text, nullable=True)
+    agent_restrictions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
     # Plan and limits
     plan: Mapped[PlanType] = mapped_column(
         Enum(PlanType), default=PlanType.FREE, nullable=False
@@ -165,6 +181,11 @@ class Document(Base):
     is_processed: Mapped[bool] = mapped_column(default=False)
     chunks_count: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # New fields for optimization
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    processing_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -203,3 +224,77 @@ class Conversation(Base):
 
     # Relationships
     business: Mapped["Business"] = relationship(back_populates="conversations")
+
+
+class PromptTemplate(Base):
+    """Saved prompt templates for reuse."""
+
+    __tablename__ = "prompt_templates"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
+    system_prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    welcome_message: Mapped[str] = mapped_column(String(500), nullable=False)
+    is_public: Mapped[bool] = mapped_column(default=False)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ConversationSession(Base):
+    """Track conversation sessions with metadata."""
+
+    __tablename__ = "conversation_sessions"
+
+    id: Mapped[str] = mapped_column(
+        String(64), primary_key=True
+    )
+    business_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False
+    )
+    user_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    total_messages: Mapped[int] = mapped_column(Integer, default=0)
+    avg_response_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    satisfaction_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class AgentConfigHistory(Base):
+    """Track changes to agent configuration."""
+
+    __tablename__ = "agent_config_history"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    business_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False
+    )
+    changed_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    field_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
