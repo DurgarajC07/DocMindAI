@@ -364,6 +364,9 @@ class ConversationMemory:
 
 class AdvancedRAGEngine:
     """Production-grade RAG engine with all optimizations."""
+    
+    # Class-level lock to serialize vector store writes (prevent SQLite concurrent write errors)
+    _vector_store_lock = asyncio.Lock()
 
     def __init__(
         self,
@@ -435,11 +438,30 @@ class AdvancedRAGEngine:
                 self.model = model
 
             def embed_documents(self, texts: list[str]) -> list[list[float]]:
-                embeddings = self.model.encode(texts, convert_to_numpy=True)
+                # Sanitize texts: remove None, empty, or whitespace-only strings
+                sanitized_texts = []
+                for text in texts:
+                    if text is None:
+                        sanitized_texts.append("")
+                        continue
+                    # Convert to string if not already
+                    text_str = str(text).strip()
+                    # Replace empty with placeholder
+                    if not text_str:
+                        sanitized_texts.append("empty")
+                    else:
+                        sanitized_texts.append(text_str)
+                
+                if not sanitized_texts:
+                    return []
+                
+                embeddings = self.model.encode(sanitized_texts, convert_to_numpy=True)
                 return embeddings.tolist()
 
             def embed_query(self, text: str) -> list[float]:
-                embedding = self.model.encode(text, convert_to_numpy=True)
+                # Sanitize query text
+                text_str = str(text).strip() if text else "empty"
+                embedding = self.model.encode(text_str, convert_to_numpy=True)
                 return embedding.tolist()
 
         return CustomEmbeddings(model)
@@ -489,33 +511,53 @@ class AdvancedRAGEngine:
         if not chunks:
             raise Exception("Document splitting produced no chunks")
 
-        # Add metadata
+        # Sanitize and validate chunks
+        valid_chunks = []
         for i, chunk in enumerate(chunks):
+            # Ensure page_content is a valid string
+            if chunk.page_content is None:
+                continue
+            
+            content = str(chunk.page_content).strip()
+            if not content or len(content) < 3:
+                continue
+            
+            # Update content and metadata
+            chunk.page_content = content
             chunk.metadata.update({
                 "business_id": self.business_id,
                 "source": source,
                 "chunk_id": i,
                 "total_chunks": len(chunks),
             })
+            valid_chunks.append(chunk)
+        
+        if not valid_chunks:
+            raise Exception("No valid chunks after sanitization")
+        
+        logger.info(f"Sanitized {len(chunks)} chunks down to {len(valid_chunks)} valid chunks")
 
-        # Add to vector store in batches
+        # Add to vector store in batches with lock to prevent concurrent write errors
         batch_size = 100
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i:i + batch_size]
-            try:
-                await asyncio.to_thread(self.vector_store.add_documents, batch)
-            except Exception as e:
-                logger.error(f"Failed to add batch {i//batch_size}: {e}")
-                raise
-
-        logger.info(f"Added {len(chunks)} chunks from {source}")
+        async with AdvancedRAGEngine._vector_store_lock:
+            logger.info(f"🔒 Acquired vector store lock for {source}")
+            for i in range(0, len(valid_chunks), batch_size):
+                batch = valid_chunks[i:i + batch_size]
+                try:
+                    await asyncio.to_thread(self.vector_store.add_documents, batch)
+                    logger.info(f"✅ Added batch {i//batch_size + 1}/{(len(valid_chunks) + batch_size - 1)//batch_size}")
+                except Exception as e:
+                    logger.error(f"Failed to add batch {i//batch_size}: {e}")
+                    raise
+            
+            logger.info(f"✅ Added {len(valid_chunks)} chunks from {source} to vector store")
 
         # Rebuild hybrid search index
         if self.hybrid_search:
             self.hybrid_search._build_bm25_index()
 
         return {
-            "chunks_count": len(chunks),
+            "chunks_count": len(valid_chunks),
             "source": source,
             "status": "success",
         }
