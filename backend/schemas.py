@@ -331,8 +331,14 @@ class WelcomeMessageSuggestions(BaseModel):
     suggestions: list[str]
 
 
-class ContentFilterConfig(BaseModel):
-    """Content filter configuration."""
+class PromptSample(BaseModel):
+    """A sample prompt with metadata."""
+
+    title: str
+    category: str
+    prompt: str
+    description: str
+    use_case: str
     
     block_profanity: bool = True
     block_personal_info_requests: bool = True

@@ -76,11 +76,10 @@ from backend.schemas import (
     PromptAnalysisResponse,
     PromptImprovementRequest,
     PromptImprovementResponse,
+    PromptSample,
     TemplateRequest,
     TemplateResponse,
     WelcomeMessageSuggestions,
-    ContentFilterConfig,
-    AgentRestrictionsConfig,
     PromptTemplateCreate,
     PromptTemplateResponse,
     UploadProgressResponse,
@@ -973,12 +972,15 @@ async def update_agent_config(
 @app.get("/api/v1/templates/categories")
 async def list_template_categories():
     """List available template categories."""
-    return {
-        "categories": [
-            {"value": cat.value, "label": cat.value.replace("_", " ").title()}
-            for cat in BusinessCategory
-        ]
-    }
+    return [
+        {
+            "id": cat.value,
+            "name": cat.value.replace("_", " ").title(),
+            "description": f"Template for {cat.value.replace('_', ' ')} businesses",
+            "icon": None
+        }
+        for cat in BusinessCategory
+    ]
 
 
 @app.get("/api/v1/templates/welcome-suggestions", response_model=WelcomeMessageSuggestions)
@@ -1071,11 +1073,11 @@ async def improve_prompt(request: PromptImprovementRequest):
     }
 
 
-@app.get("/api/v1/prompt-assistant/samples")
+@app.get("/api/v1/prompt-assistant/samples", response_model=list[PromptSample])
 async def get_sample_prompts(category: BusinessCategory = BusinessCategory.CUSTOM):
     """Get sample prompts for a category."""
     samples = PromptAssistant.get_sample_prompts(category)
-    return {"samples": samples, "category": category.value}
+    return samples
 
 
 # ========== Prompt Template Management ==========

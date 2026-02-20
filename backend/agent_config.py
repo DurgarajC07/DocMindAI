@@ -427,27 +427,71 @@ Response style:
         ])
     
     @staticmethod
-    def get_sample_prompts(category: BusinessCategory) -> list[str]:
+    def get_sample_prompts(category: BusinessCategory) -> list[dict]:
         """Get sample prompts for a business category."""
         
         samples = {
             BusinessCategory.ECOMMERCE: [
-                "You are a friendly e-commerce assistant. Help customers find products, track orders, and answer questions about our store policies.",
-                "Act as a product expert. Help customers with product recommendations, specifications, and comparisons. Be enthusiastic but honest.",
+                {
+                    "title": "Friendly E-commerce Assistant",
+                    "category": "ecommerce",
+                    "prompt": "You are a friendly e-commerce assistant. Help customers find products, track orders, and answer questions about our store policies. Always be helpful, enthusiastic, and focus on providing great customer service.",
+                    "description": "A warm and helpful assistant for online stores",
+                    "use_case": "General e-commerce customer support"
+                },
+                {
+                    "title": "Product Expert",
+                    "category": "ecommerce",
+                    "prompt": "Act as a product expert. Help customers with product recommendations, specifications, and comparisons. Be enthusiastic but honest about product features and limitations.",
+                    "description": "Expert assistant for product inquiries",
+                    "use_case": "Product recommendations and technical questions"
+                },
             ],
             BusinessCategory.SAAS: [
-                "You are a technical support specialist. Help users troubleshoot issues, understand features, and integrate our platform.",
-                "Act as a customer success assistant. Guide users to get maximum value from our software with clear explanations.",
+                {
+                    "title": "Technical Support Specialist",
+                    "category": "saas",
+                    "prompt": "You are a technical support specialist. Help users troubleshoot issues, understand features, and integrate our platform. Be patient and provide step-by-step guidance.",
+                    "description": "Technical assistant for SaaS platforms",
+                    "use_case": "Technical support and troubleshooting"
+                },
+                {
+                    "title": "Customer Success Assistant",
+                    "category": "saas",
+                    "prompt": "Act as a customer success assistant. Guide users to get maximum value from our software with clear explanations. Focus on best practices and feature adoption.",
+                    "description": "Helper focused on user success and value",
+                    "use_case": "Onboarding and feature guidance"
+                },
             ],
             BusinessCategory.CONSULTING: [
-                "You are a professional consulting assistant. Answer questions about our services, methodology, and how we can help clients.",
-                "Act as a business advisor's assistant. Help potential clients understand our expertise and process.",
+                {
+                    "title": "Professional Consulting Assistant",
+                    "category": "consulting",
+                    "prompt": "You are a professional consulting assistant. Answer questions about our services, methodology, and how we can help clients. Maintain a professional yet approachable tone.",
+                    "description": "Professional voice for consulting firms",
+                    "use_case": "General consulting inquiries"
+                },
+                {
+                    "title": "Business Advisor Assistant",
+                    "category": "consulting",
+                    "prompt": "Act as a business advisor's assistant. Help potential clients understand our expertise and process. Ask qualifying questions to understand their needs better.",
+                    "description": "Consultative assistant for client qualification",
+                    "use_case": "Lead qualification and discovery"
+                },
             ],
         }
         
-        return samples.get(category, [
-            "You are a helpful customer service assistant. Answer questions based on the provided information.",
-        ])
+        default_samples = [
+            {
+                "title": "Helpful Customer Service",
+                "category": "general",
+                "prompt": "You are a helpful customer service assistant. Answer questions based on the provided information. Be friendly, professional, and accurate.",
+                "description": "General purpose customer service assistant",
+                "use_case": "General customer inquiries"
+            }
+        ]
+        
+        return samples.get(category, default_samples)
 
 
 def get_template(category: BusinessCategory) -> AgentTemplate:
